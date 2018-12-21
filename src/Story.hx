@@ -3,6 +3,7 @@ package src;
 import hscript.Parser;
 import hscript.Interp;
 
+@:allow(src.StoryTest)
 class Story {
     private var scriptLines: Array<HankLine>;
     private var currentLine: Int = 0;
@@ -14,6 +15,7 @@ class Story {
     private var choiceDepth = 0;
     private var choicesFullText = new Array<String>();
     private var debugPrints: Bool;
+    private var choicesParsed = 0;
 
     private function debugTrace(v: Dynamic, ?infos: haxe.PosInfos) {
         if (debugPrints) {
@@ -38,16 +40,36 @@ class Story {
         if (trimmedLine.length > 0) {
             // Parse an INCLUDE statement
             if (StringTools.startsWith(trimmedLine, "INCLUDE")) {
-                return IncludeFile(trimmedLine.substr(8));
+                return IncludeFile(StringTools.trim(trimmedLine.substr(8));
             }
             // Parse a section declaration
             else if (StringTools.startsWith(trimmedLine, "==")) {
-                var sectionName = trimmedLine.split(" ")[1];
+                var sectionName = StringTools.trim(trimmedLine.substr(2));
                 // Initialize its view count variable to 0
                 interp.variables[sectionName] = 0;
                 return DeclareSection(sectionName);
             } else if (StringTools.startsWith(trimmedLine, "->")) {
                 return Divert(StringTools.trim(trimmedLine.substr(2)));
+            } else if (StringTools.startsWith(trimmedLine, "*") || StringTools.startsWith(trimmedLine, "+")) {
+                var choiceDepth = 1;
+                while (trimmedLine[choiceDepth] == trimmedLine[choiceDepth-1]) {
+                    choiceDepth += 1;
+                }
+
+                var choiceText = StringTools.trim(trimmedLine.substr(choiceDepth));
+                return DeclareChoice(choiceText, choiceDepth, choicesParsed++);
+            } else if (StringTools.startsWith(trimmedLine,"-")) {
+                var gatherDepth = 1;
+                while (trimmedLine[gatherDepth] == trimmedLine[gatherDepth-1]) {
+                    gatherDepth += 1;
+                }
+
+                // Gathers store the parsed version of the next line.
+                return Gather(gatherDepth, parseLine(trimmedLine.substr(gatherDepth)));
+            } else if (StringTools.startsWith(trimmedLine, "~")) {
+                return HaxeLine(StringTools.trim(trimmedLine.substr(1)));
+            } else if (// TODO check for ``` code blocks) {
+                // TODO increment line index for every line in the block
             }
         } else {
             return Empty;
