@@ -51,4 +51,8 @@ class StoryTest extends haxe.unit.TestCase {
         assertEquals("HasText(That's perfectly valid!)", Std.string(story.nextFrame()));
         assertEquals(StoryFrame.Empty, story.nextFrame());
     }
+
+    public function testParseLine() {
+        // TODO test edge cases of all line types (maybe with more separate functions too)
+    }
 }
