@@ -30,29 +30,30 @@ class StoryTest extends haxe.unit.TestCase {
         var frame1 = Std.string(story.nextFrame());
         // This calls the INCLUDE statement. Ensure that all lines
         // were included
-        assertEquals(37+21, story.lineCount);
+        assertEquals(38+22, story.lineCount);
 
         assertEquals("HasText(This is a section of a Hank story. It's pretty much like a Knot in Ink.)", frame1);
         assertEquals("HasText(Line breaks define the chunks of this section that will eventually get sent to your game to process!)", Std.string(story.nextFrame()));
         assertEquals("HasText(Your Hank scripts will contain the static content of your game, but they can also insert dynamic content, even the result of complex haxe expressions!)", Std.string(story.nextFrame()));
         assertEquals("HasText(You can include choices for the player.)", Std.string(story.nextFrame()));
 
-        assertEquals("HasChoices([Door A,Door B opens but the room on the other side is identical!])", Std.string(story.nextFrame()));
+        assertEquals("HasChoices([Door A looks promising!,Door B])", Std.string(story.nextFrame()));
 
         assertEquals("Door A opens and there's nothing behind it.", story.choose(0));
 
         assertEquals("HasText(You can include choices for the player.)", Std.string(story.nextFrame()));
-        assertEquals("HasChoices([Door B opens but the room on the other side is identical!,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
+        assertEquals("HasChoices([Door B,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
 
+        // Picking the same + choice should loop
         assertEquals("Door B opens but the room on the other side is identical!", story.choose(0)); 
         assertEquals("HasText(You can include choices for the player.)", Std.string(story.nextFrame()));
-        assertEquals("HasChoices([Door B opens but the room on the other side is identical!,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
+        assertEquals("HasChoices([Door B,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
         assertEquals("Door B opens but the room on the other side is identical!", story.choose(0)); 
         assertEquals("HasText(You can include choices for the player.)", Std.string(story.nextFrame()));
-        assertEquals("HasChoices([Door B opens but the room on the other side is identical!,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
+        assertEquals("HasChoices([Door B,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
         assertEquals("Door B opens but the room on the other side is identical!", story.choose(0)); 
         assertEquals("HasText(You can include choices for the player.)", Std.string(story.nextFrame()));
-        assertEquals("HasChoices([Door B opens but the room on the other side is identical!,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
+        assertEquals("HasChoices([Door B,Choices can depend on logical conditions being truthy.])", Std.string(story.nextFrame()));
 
         assertEquals("Choices can depend on logical conditions being truthy.", story.choose(1));
 
@@ -62,6 +63,8 @@ class StoryTest extends haxe.unit.TestCase {
         assertEquals("HasChoices([Yes I'm sure.,I've changed my mind.])", Std.string(story.nextFrame()));
         assertEquals("Yes I'm sure.", story.choose(0));
         assertEquals("HasText(That's perfectly valid!)", Std.string(story.nextFrame()));
+        assertEquals("HasText(That's the end of this example!)", Std.string(story.nextFrame()));
+        assertEquals("HasText(This should say 'mouse': mouse)", Std.string(story.nextFrame()));
         assertEquals(StoryFrame.Finished, story.nextFrame());
     }
 
@@ -77,7 +80,7 @@ class StoryTest extends haxe.unit.TestCase {
         // Parse the main.hank script and test that all lines are correctly parsed
         var story = new Story(true);
         story.loadScript("examples/main.hank");
-        assertEquals(37, story.lineCount);
+        assertEquals(38, story.lineCount);
 
         // TODO test a few line numbers from the script to make sure the parsed versions match. Especially block line numbers
 
@@ -96,19 +99,22 @@ class StoryTest extends haxe.unit.TestCase {
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: DeclareSection(final_choice)') != -1);
         //trace(Std.string(story.scriptLines[idx]));
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: HaxeBlock(5,var unused_variable="";\n// This is a comment INSIDE a haxe block\n/*The whole block will be parsed and executed at the same time*/\n)') != -1);
-        // trace(Std.string(story.scriptLines[idx]));
-        assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: DeclareChoice({text: I don\'t think I\'ll use Hank for my games., id: 0, depth: 1})') != -1);
+        //trace(Std.string(story.scriptLines[idx]));
+        assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: DeclareChoice({text: I don\'t think I\'ll use Hank for my games., id: 0, depth: 1, expires: true})') != -1);
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: OutputText(Are you sure?)') != -1);
         // trace(Std.string(story.scriptLines[idx]));
-        assertTrue(Std.string(story.scriptLines[idx++]).indexOf("type: DeclareChoice({text: Yes I'm sure., id: 1, depth: 2})") != -1);
+        assertTrue(Std.string(story.scriptLines[idx++]).indexOf("type: DeclareChoice({text: Yes I'm sure., id: 1, depth: 2, expires: true})") != -1);
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: OutputText(That\'s perfectly valid!)') != -1);
-        trace(Std.string(story.scriptLines[idx]));
-        assertTrue(Std.string(story.scriptLines[idx++]).indexOf("type: DeclareChoice({text: I've changed my mind., id: 2, depth: 2})") != -1);
+        // trace(Std.string(story.scriptLines[idx]));
+        assertTrue(Std.string(story.scriptLines[idx++]).indexOf("type: Divert(the_end)") != -1);
+        assertTrue(Std.string(story.scriptLines[idx++]).indexOf("type: DeclareChoice({text: I've changed my mind., id: 2, depth: 2, expires: true})") != -1);
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: Divert(final_choice)') != -1);
-        assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: DeclareChoice({text: Hank sounds awesome, thanks!, id: 3, depth: 1})') != -1);
+        assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: DeclareChoice({text: Hank sounds awesome, thanks!, id: 3, depth: 1, expires: true})') != -1);
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: Divert(the_end)') != -1);
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: DeclareSection(the_end)') != -1);
         assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: OutputText(That\'s the end of this example!)') != -1);
+        // trace(Std.string(story.scriptLines[idx]));
+        assertTrue(Std.string(story.scriptLines[idx++]).indexOf('type: OutputText(This should say \'mouse\': {what_happened}') != -1);
 
 
         // Parse the extra.hank script and also test its parsing

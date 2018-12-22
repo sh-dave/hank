@@ -26,6 +26,7 @@ var unused_variable="";
     Are you sure?
     ** Yes I'm sure.
     That's perfectly valid!
+        -> the_end
     ** I've changed my mind.
         -> final_choice
 * Hank sounds awesome, thanks!   
@@ -34,3 +35,4 @@ var unused_variable="";
 == the_end
 
 That's the end of this example!    
+This should say 'mouse': {what_happened}
