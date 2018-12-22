@@ -195,19 +195,20 @@ class Story {
     //}
 
     //// TODO this doesn't allow for multiple declaration and other edge cases that must exist
-    // TODO this also needs to account for var declarations in block statements
-    private function processHaxeStatement(line: String) {
-        // In order to preserve the values of variables declared in embedded Haxe,
-        // we need to predeclare them all as globals in this Story's interpreter.
-        var trimmed = StringTools.ltrim(line);
-        if (trimmed.length > 0) {
-            if (StringTools.startsWith(trimmed, "var")) {
-                var varName = trimmed.split(" ")[1];
-                interp.variables[varName] = null;
-                trimmed = trimmed.substr(4); // Strip out the `var ` prefix before executing so the global value doesn't get overshadowed by a new declaration
+    private function processHaxeBlock(lines: String) {
+        for (line in lines.split('\n')) {
+            // In order to preserve the values of variables declared in embedded Haxe,
+            // we need to predeclare them all as globals in this Story's interpreter.
+            var trimmed = StringTools.ltrim(line);
+            if (trimmed.length > 0) {
+                if (StringTools.startsWith(trimmed, "var")) {
+                    var varName = trimmed.split(" ")[1];
+                    interp.variables[varName] = null;
+                    trimmed = trimmed.substr(4); // Strip out the `var ` prefix before executing so the global value doesn't get overshadowed by a new declaration
+                }
+                var program = parser.parseString(trimmed);
+                interp.execute(program);
             }
-            var program = parser.parseString(trimmed);
-            interp.execute(program);
         }
     }
 
