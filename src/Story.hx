@@ -3,6 +3,25 @@ package src;
 import hscript.Parser;
 import hscript.Interp;
 
+typedef HankLine = {
+    var sourceFile: String;
+    var lineNumber: Int;
+    var type: LineType;
+}
+
+enum LineType {
+    IncludeFile(path: String);
+    OutputText(text: String);
+    // Choices are parsed with a unique ID so they can be followed even if duplicate text is used for multiple choices
+    DeclareChoice(text: String, depth: Int, id: Int);
+    DeclareSection(name: String);
+    Divert(target: String);
+    Gather(depth: Int, restOfLine: LineType);
+    HaxeLine(code: String);
+    DeclareHaxeBlock;
+    Empty;
+}
+
 @:allow(src.StoryTest)
 class Story {
     private var scriptLines: Array<HankLine>;
@@ -35,12 +54,12 @@ class Story {
     }
 
     private function parseLine(line: String): LineType {
-        var trimmedLine = StringTools.ltrim(unparsedLine);
+        var trimmedLine = StringTools.ltrim(line);
 
         if (trimmedLine.length > 0) {
             // Parse an INCLUDE statement
             if (StringTools.startsWith(trimmedLine, "INCLUDE")) {
-                return IncludeFile(StringTools.trim(trimmedLine.substr(8));
+                return IncludeFile(StringTools.trim(trimmedLine.substr(8)));
             }
             // Parse a section declaration
             else if (StringTools.startsWith(trimmedLine, "==")) {
@@ -68,8 +87,8 @@ class Story {
                 return Gather(gatherDepth, parseLine(trimmedLine.substr(gatherDepth)));
             } else if (StringTools.startsWith(trimmedLine, "~")) {
                 return HaxeLine(StringTools.trim(trimmedLine.substr(1)));
-            } else if (// TODO check for ``` code blocks) {
-                // TODO increment line index for every line in the block
+            } else if (StringTools.startsWith(trimmedLine, "```")) {
+                return DeclareHaxeBlock;
             }
         } else {
             return Empty;
