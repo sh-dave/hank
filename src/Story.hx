@@ -10,6 +10,7 @@ typedef HankLine = {
 }
 
 typedef Choice = {
+    var expires: Bool;
     var text: String;
     var depth: Int;
     var id: Int;
@@ -88,6 +89,7 @@ class Story {
             } else if (StringTools.startsWith(trimmedLine, "->")) {
                 return Divert(StringTools.trim(trimmedLine.substr(2)));
             } else if (StringTools.startsWith(trimmedLine, "*") || StringTools.startsWith(trimmedLine, "+")) {
+                var expires = StringTools.startsWith(trimmedLine, "*");
                 var depth = 1;
                 while (trimmedLine.charAt(depth) == trimmedLine.charAt(depth-1)) {
                     depth += 1;
@@ -95,6 +97,7 @@ class Story {
 
                 var choiceText = StringTools.trim(trimmedLine.substr(depth));
                 return DeclareChoice({
+                    expires: expires,
                     text: choiceText,
                     depth: depth,
                     id: choicesParsed++
@@ -249,9 +252,15 @@ class Story {
 
         switch (frame) {
             case Error(message):
-                // TODO output this to a log file
-                trace('Error at line ${scriptLine.lineNumber} in ${scriptLine.sourceFile}: ${message}');
-                return Finished;
+                var fullMessage = 'Error at line ${scriptLine.lineNumber} in ${scriptLine.sourceFile}: ${message}';
+                if (debugPrints) {
+                    throw fullMessage;
+                } else {
+                    // This is a breaking error in production code. Output it to a file
+                    trace(fullMessage);
+
+                    return Finished;
+                }
             default:
                 return frame;
         }
@@ -291,8 +300,23 @@ class Story {
             case DeclareChoice(choice):
                 if (choice.depth > choiceDepth) {
                     choiceDepth = choice.depth;
+                } else if (choice.depth < choiceDepth) {
+                    // The lines following a choice have run out. Now we need to look for the following gather
+                    return processFromNextGather();
                 }
+                
                 return HasChoices([for (choice in collectChoicesToDisplay()) choice.text]);
+            case Gather(depth, nextPartType):
+                if (choiceDepth > depth) {
+                    choiceDepth = depth;
+                    return processLine({
+                        lineNumber: currentLine,
+                        sourceFile: scriptLines[currentLine].sourceFile,
+                        type: nextPartType
+                    });
+                } else {
+                    return Error("Encountered a gather for the wrong depth");
+                }
             // TODO remove the default case after everything is implemented
             default:
                 stepLine();
@@ -319,144 +343,54 @@ class Story {
     @return the choice output.
     **/
     public function choose(index: Int): String {
-        // TODO remove * choices from scriptLines
-        return "";
-        /*
-        if (choicesFullText.length == 0) {
-            trace("Error! Trying to choose when no choices are available!");
+        var validChoices = collectChoicesToDisplay(true);
+        var choiceTaken = validChoices[index];
+        choiceDepth = choiceTaken.depth + 1;
+        // Remove * choices from scriptLines
+        if (choiceTaken.expires) {
+            choicesEliminated.push(choiceTaken.id);
         }
-        debugTrace('At the start: ${choicesFullText.toString()}');
-        var choiceDisplayText = choicesFullText[index];
-        debugTrace('Choosing: ${choiceDisplayText}');
-        choiceDisplayText = StringTools.ltrim(StringTools.ltrim(choiceDisplayText).substr(choiceDepth));
-
-        // Remove initial condition 
-        if (Util.startsWithEnclosure(choiceDisplayText, "{","}")) {
-            choiceDisplayText = StringTools.ltrim(Util.replaceEnclosure(choiceDisplayText, "", "{", "}"));
-        }
-        // remove the contents of the brackets,
-        if (Util.containsEnclosure(choiceDisplayText, "[", "]")) {
-            choiceDisplayText = Util.replaceEnclosure(choiceDisplayText, "", "[", "]");
-        }
-        // interpolate expressions in, etc.
-        choiceDisplayText = fillHExpressions(choiceDisplayText);
-
-        // set the current line to the line following this choice. Set the current depth to that depth 
-        var nextLine = findNextLineAfterChoice(index);
-        currentLine = nextLine;
-        choiceDepth = depthOf(choicesFullText[index]);
-
-        // When a * choice is chosen, remove its line from scriptLines so it doesn't appear again
-        // Update the current index to reflect the removed line
-        if (StringTools.startsWith(StringTools.ltrim(choicesFullText[index]), "*")) {
-            // debugTrace('Length: ${scriptLines.length}');
-            // debugTrace('indexOf: ${scriptLines.indexOf(choicesFullText[index])}');
-            scriptLines.remove(choicesFullText[index]);
-            // debugTrace('Length: ${scriptLines.length}');
-            if (currentLine > index) currentLine -= 1;
+        // Find the line where the choice taken occurs
+        for (i in currentLine...scriptLines.length) {
+            switch (scriptLines[i].type) {
+                case DeclareChoice(choice):
+                    if (choice.id == choiceTaken.id) {
+                        gotoLine(i);
+                        break;
+                    }
+                default:
+            }
         }
 
-        // Stop storing the full text of these choices so we don't accidentally trigger them later.
-        choicesFullText = new Array<String>();
-        debugTrace('After clearing: ${choicesFullText.toString()}');
+        // Move to the line following this choice.
+        stepLine();
 
-        return choiceDisplayText;
-        */
+        return choiceTaken.text;
     }
 
-//    function skipToGather() {
-//        debugTrace('depth: ${choiceDepth}');
-//        var gatherOfThisDepth = StringTools.lpad("", "-", choiceDepth);
-//        var l = currentLine+1;
-//        var foundIt = false;
-//        debugTrace(l);
-//        debugTrace(scriptLines[l]);
-//        while (l < scriptLines.length && scriptLines[l] != "EOF") {
-//            var trimmed = StringTools.ltrim(scriptLines[l]);
-//            if (trimmed.length == 0) { 
-//                l += 1;
-//                continue;
-//            }
-//            if (StringTools.startsWith(StringTools.ltrim(scriptLines[l]), "==")) {
-//                break;
-//            }
-//            if (StringTools.startsWith(trimmed, gatherOfThisDepth)) {
-//                // -> diverts can trip false gather positives
-//                var possibleGather = trimmed.substr(0, gatherOfThisDepth.length + 1);
-//                if (StringTools.endsWith(possibleGather, ">")) {
-//                    l += 1;
-//                    continue;
-//                }
-//                foundIt = true;
-//                break;
-//            }
-//            l += 1;
-//        }
-//        if (foundIt) {
-//            currentLine = l;
-//            return processNextLine();
-//        } else {
-//            return Empty;
-//        }
-//
-//    }
-//
-//    function findNextLineAfterChoice(choice: Int): Int {
-//        // The next line is the first line after the choice with no depth (meaning it's plaintext -- unless a different same-depth choice comes first) or a gather of proper depth
-//        var gatherOfThisDepth = StringTools.lpad("", "-", choiceDepth);
-//        var choiceLine = scriptLines.indexOf(choicesFullText[choice]);
-//        // debugTrace('Choice line: ${choiceLine}');
-//        var l = choiceLine+1;
-//
-//        var metNextInSet = false;
-//        var foundIt = false;
-//        while (l < scriptLines.length && scriptLines[l] != "EOF") {
-//            var trimmed = StringTools.ltrim(scriptLines[l]);
-//            if (trimmed.length == 0) { 
-//                l += 1;
-//                continue;
-//            }
-//            if (StringTools.startsWith(StringTools.ltrim(scriptLines[l]), "==")) {
-//                break;
-//            }
-//            if (!metNextInSet && StringTools.startsWith(trimmed, "->")) {
-//                foundIt = true;
-//                break;
-//            }
-//            if (StringTools.startsWith(trimmed, gatherOfThisDepth)) {
-//                // -> diverts can trip false gather positives
-//                var possibleGather = trimmed.substr(0, gatherOfThisDepth.length + 1);
-//                if (StringTools.endsWith(possibleGather, ">")) {
-//                    l += 1;
-//                    continue;
-//                }
-//                foundIt = true;
-//                break;
-//            }
-//            else if (!metNextInSet && depthOf(trimmed) == 0) {
-//                foundIt = true;
-//                break;
-//            }
-//            else if (!metNextInSet && depthOf(trimmed) == choiceDepth+1) {
-//                foundIt = true;
-//                break;
-//            } else if (depthOf(trimmed) == choiceDepth) {
-//                debugTrace('${trimmed} is next in set');
-//                metNextInSet = true;
-//                l += 1;
-//                continue;
-//            }
-//
-//        }
-//        if (!foundIt) {
-//            debugTrace("no next line found!");
-//            return -1; // Need to throw up an empty frame
-//        } else {
-//            debugTrace('Next line is: ${scriptLines[l]}');
-//            return l;
-//        }
-//    }
-//
+    function processFromNextGather(): StoryFrame {
+        // debugTrace("called processFromNextGather()");
+        var l = currentLine+1;
+        var file = scriptLines[currentLine].sourceFile;
+        while (l < scriptLines.length && scriptLines[l].sourceFile == file) {
+            // debugTrace('checking ${Std.string(scriptLines[l])} for gather');
+            switch (scriptLines[l].type) {
+                case DeclareSection(_):
+                    return Error("Failed to find a gather or divert before the file ended.");
+                case Gather(depth, type):
+                    gotoLine(l);
+                    return processNextLine();
+                default:
+                    // These are probably lines following the other choices
+            }
+            
+            l += 1;
+        }
+        return Error("Failed to find a gather or divert before the file ended.");
+    }
+
+
+
     /**
     Handle choice declarations starting at the current script line
     **/
@@ -466,15 +400,28 @@ class Story {
         var file = scriptLines[currentLine].sourceFile;
         var nextLineFile = file;
         var l = currentLine;
-        while (scriptLines[l].sourceFile == file) { // check for EOF
+        while (l < scriptLines.length && scriptLines[l].sourceFile == file) { // check for EOF
 
-            var type = scriptLines[currentLine].type;
+            var type = scriptLines[l].type;
             switch (type) {
                 // Collect choices of the current depth
                 case DeclareChoice(choice):
-                    choices.push(choice);
+                    // trace(Std.string(choice));
+                    if (choice.depth == choiceDepth) {
+                        choices.push({
+                            expires: choice.expires,
+                            id: choice.id,
+                            depth: choice.depth,
+                            text: choice.text
+                            });
+                    }
                 // Stop searching when we hit a gather of the current depth
-                case Gather(choiceDepth,_):
+                case Gather(depth,_):
+                    if (depth == choiceDepth){
+                        break;
+                    }
+                // Or when we hit a section declaration
+                case DeclareSection(_):
                     break;
                 default:
             }
@@ -496,27 +443,39 @@ class Story {
     }
 
     private function choiceToDisplay(choice: Choice, chosen: Bool): Choice {
+        // Don't display the choice's condition
         if (Util.startsWithEnclosure(choice.text, "{", "}")) {
             choice.text = StringTools.trim(Util.replaceEnclosure(choice.text, "", "{", "}"));
         }
+        // Handle bracket hiding
         // If it's been chosen, drop the bracket contents and keep what's next
-        if (chosen) {
-            choice.text = Util.replaceEnclosure(choice.text, "", "[", "]");
-        } else {
-            choice.text = choice.text.substr(0, choice.text.indexOf('[')) + Util.findEnclosure(choice.text, "[", "]");
+        if (Util.containsEnclosure(choice.text, "[", "]")) {
+            if (chosen) {
+                choice.text = Util.replaceEnclosure(choice.text, "", "[", "]");
+                // Remove double spaces resulting from this
+                choice.text = StringTools.replace(choice.text, "  ", " ");
+            } else {
+                choice.text = choice.text.substr(0, choice.text.indexOf('[')) + Util.findEnclosure(choice.text, "[", "]");
+            }
         }
 
         choice.text = fillHExpressions(choice.text);
+        choice.text = StringTools.trim(choice.text);
         return choice;
     }
 
-    private function collectChoicesToDisplay(): Array<Choice> {
+    private var choicesEliminated: Array<Int> = new Array();
+
+    private function collectChoicesToDisplay(chosen: Bool = false): Array<Choice> {
         var choices = new Array();
         for (choice in collectRawChoices()) {
             // check the choice's condition flag. Skip choices whose flag is not truthy.
             if (checkChoiceCondition(choice)) {
-                // fill the choice's h expressions after removing the flag expression
-                choices.push(choiceToDisplay(choice, false));
+                // Check that the choice hasn't been chosen before if it is a one-time-only
+                if (choicesEliminated.indexOf(choice.id) == -1) {
+                    // fill the choice's h expressions after removing the flag expression
+                    choices.push(choiceToDisplay(choice, chosen));
+                }
             }
         }
         return choices;
@@ -524,7 +483,7 @@ class Story {
 
     public function gotoSection(section: String): StoryFrame {
         // this should clear the current choice depth
-        choiceDepth = 1;
+        choiceDepth = 0;
         // Update this section's view count
         if (!interp.variables.exists(section)) {
             throw 'Tried to divert to undeclared section ${section}.';
