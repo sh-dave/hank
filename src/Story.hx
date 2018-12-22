@@ -212,13 +212,23 @@ class Story {
         }
     }
 
-//    private function processNextLine(): StoryFrame {
-//        var frame = processLine(scriptLines[currentLine]);
-//        //debugTrace('next line is: ${scriptLines[currentLine+1]}');
-//        return frame;
-//    }
-//
-//    private function processLine (line: String): StoryFrame {
+    private function processNextLine(): StoryFrame {
+        var scriptLine = meaningfulScriptLines[currentLine];
+        var frame = processLine(scriptLine.type);
+
+        switch (frame) {
+            case Error(message):
+                // TODO output this to a log file
+                trace('Error at line ${scriptLine.lineNumber} in ${scriptLine.sourceFile}: ${message}');
+                return Finished;
+            default:
+                return frame;
+        }
+    }
+
+    private function processLine (line: LineType): StoryFrame {
+        return Finished;
+    }
 //        debugTrace('processing: ${line}');
 //        var trimmedLine = StringTools.ltrim(line);
 //        if (trimmedLine.indexOf("INCLUDE ") == 0) {
