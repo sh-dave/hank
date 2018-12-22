@@ -10,13 +10,13 @@ class StoryTest extends haxe.unit.TestCase {
         r.run();
     }
 
-//    public function testHelloWorld() {
-//        var story: Story = new Story();
-//        story.loadScript("examples/hello.hank");
-//        assertEquals('HasText(Hello, world!)', Std.string(story.nextFrame()));
-//        assertEquals(StoryFrame.Finished, story.nextFrame());
-//        assertEquals(StoryFrame.Finished, story.nextFrame());
-//    }
+    public function testHelloWorld() {
+        var story: Story = new Story();
+        story.loadScript("examples/hello.hank");
+        assertEquals('HasText(Hello, world!)', Std.string(story.nextFrame()));
+        assertEquals(StoryFrame.Finished, story.nextFrame());
+        assertEquals(StoryFrame.Finished, story.nextFrame());
+    }
 //
 //    public function testFullSpec1() {
 //        var story: Story = new Story();

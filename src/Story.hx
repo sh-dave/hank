@@ -186,15 +186,15 @@ class Story {
         }
     }
 
-    //public function nextFrame(): StoryFrame {
-        //return if (currentLine >= scriptLines.length) {
-            //Finished;
-        //} else {
-            //processNextLine();
-        //}
-    //}
+    public function nextFrame(): StoryFrame {
+        return if (currentLine >= scriptLines.length) {
+            Finished;
+        } else {
+            processNextLine();
+        }
+    }
 
-    //// TODO this doesn't allow for multiple declaration and other edge cases that must exist
+    // TODO this doesn't allow for multiple declaration and other edge cases that must exist
     private function processHaxeBlock(lines: String) {
         for (line in lines.split('\n')) {
             // In order to preserve the values of variables declared in embedded Haxe,
@@ -227,7 +227,13 @@ class Story {
     }
 
     private function processLine (line: LineType): StoryFrame {
-        return Finished;
+        switch (line) {
+            case OutputText(text):
+                currentLine += 1;
+                return HasText(fillHExpressions(text));
+            default:
+                return Finished;
+        }
     }
 //        debugTrace('processing: ${line}');
 //        var trimmedLine = StringTools.ltrim(line);
