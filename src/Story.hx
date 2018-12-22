@@ -231,8 +231,14 @@ class Story {
             case OutputText(text):
                 currentLine += 1;
                 return HasText(fillHExpressions(text));
+            case IncludeFile(path):
+                currentLine += 1;
+                loadScript(directory + path);
+                return processNextLine();
+            // TODO remove the default case after everything is implemented
             default:
-                return Finished;
+                currentLine += 1;
+                return processNextLine();
         }
     }
 //        debugTrace('processing: ${line}');
@@ -309,10 +315,10 @@ class Story {
 //        }
 //    }
 //*/
-//
-//    /**
-//    Parse haxe expressions in the text
-//    **/
+
+    /**
+    Parse haxe expressions in the text
+    **/
     function fillHExpressions(text: String) {
         while (Util.containsEnclosure(text, "{", "}")) {
             var expression = Util.findEnclosure(text,"{","}");
@@ -322,49 +328,57 @@ class Story {
         }
         return text;
     }
-//
-//    public function choose(index: Int): String {
-//        if (choicesFullText.length == 0) {
-//            trace("Error! Trying to choose when no choices are available!");
-//        }
-//        debugTrace('At the start: ${choicesFullText.toString()}');
-//        var choiceDisplayText = choicesFullText[index];
-//        debugTrace('Choosing: ${choiceDisplayText}');
-//        choiceDisplayText = StringTools.ltrim(StringTools.ltrim(choiceDisplayText).substr(choiceDepth));
-//
-//        // Remove initial condition 
-//        if (Util.startsWithEnclosure(choiceDisplayText, "{","}")) {
-//            choiceDisplayText = StringTools.ltrim(Util.replaceEnclosure(choiceDisplayText, "", "{", "}"));
-//        }
-//        // remove the contents of the brackets,
-//        if (Util.containsEnclosure(choiceDisplayText, "[", "]")) {
-//            choiceDisplayText = Util.replaceEnclosure(choiceDisplayText, "", "[", "]");
-//        }
-//        // interpolate expressions in, etc.
-//        choiceDisplayText = fillHExpressions(choiceDisplayText);
-//
-//        // set the current line to the line following this choice. Set the current depth to that depth 
-//        var nextLine = findNextLineAfterChoice(index);
-//        currentLine = nextLine;
-//        choiceDepth = depthOf(choicesFullText[index]);
-//
-//        // When a * choice is chosen, remove its line from scriptLines so it doesn't appear again
-//        // Update the current index to reflect the removed line
-//        if (StringTools.startsWith(StringTools.ltrim(choicesFullText[index]), "*")) {
-//            // debugTrace('Length: ${scriptLines.length}');
-//            // debugTrace('indexOf: ${scriptLines.indexOf(choicesFullText[index])}');
-//            scriptLines.remove(choicesFullText[index]);
-//            // debugTrace('Length: ${scriptLines.length}');
-//            if (currentLine > index) currentLine -= 1;
-//        }
-//
-//        // Stop storing the full text of these choices so we don't accidentally trigger them later.
-//        choicesFullText = new Array<String>();
-//        debugTrace('After clearing: ${choicesFullText.toString()}');
-//
-//        return choiceDisplayText;
-//    }
-//
+
+    /**
+    Make a choice for the player.
+    @param index A valid index of the choice list returned by nextFrame()
+    @return the choice output.
+    **/
+    public function choose(index: Int): String {
+        return "";
+        /*
+        if (choicesFullText.length == 0) {
+            trace("Error! Trying to choose when no choices are available!");
+        }
+        debugTrace('At the start: ${choicesFullText.toString()}');
+        var choiceDisplayText = choicesFullText[index];
+        debugTrace('Choosing: ${choiceDisplayText}');
+        choiceDisplayText = StringTools.ltrim(StringTools.ltrim(choiceDisplayText).substr(choiceDepth));
+
+        // Remove initial condition 
+        if (Util.startsWithEnclosure(choiceDisplayText, "{","}")) {
+            choiceDisplayText = StringTools.ltrim(Util.replaceEnclosure(choiceDisplayText, "", "{", "}"));
+        }
+        // remove the contents of the brackets,
+        if (Util.containsEnclosure(choiceDisplayText, "[", "]")) {
+            choiceDisplayText = Util.replaceEnclosure(choiceDisplayText, "", "[", "]");
+        }
+        // interpolate expressions in, etc.
+        choiceDisplayText = fillHExpressions(choiceDisplayText);
+
+        // set the current line to the line following this choice. Set the current depth to that depth 
+        var nextLine = findNextLineAfterChoice(index);
+        currentLine = nextLine;
+        choiceDepth = depthOf(choicesFullText[index]);
+
+        // When a * choice is chosen, remove its line from scriptLines so it doesn't appear again
+        // Update the current index to reflect the removed line
+        if (StringTools.startsWith(StringTools.ltrim(choicesFullText[index]), "*")) {
+            // debugTrace('Length: ${scriptLines.length}');
+            // debugTrace('indexOf: ${scriptLines.indexOf(choicesFullText[index])}');
+            scriptLines.remove(choicesFullText[index]);
+            // debugTrace('Length: ${scriptLines.length}');
+            if (currentLine > index) currentLine -= 1;
+        }
+
+        // Stop storing the full text of these choices so we don't accidentally trigger them later.
+        choicesFullText = new Array<String>();
+        debugTrace('After clearing: ${choicesFullText.toString()}');
+
+        return choiceDisplayText;
+        */
+    }
+
 //    function skipToGather() {
 //        debugTrace('depth: ${choiceDepth}');
 //        var gatherOfThisDepth = StringTools.lpad("", "-", choiceDepth);
