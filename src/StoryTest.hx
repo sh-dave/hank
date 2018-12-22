@@ -53,6 +53,8 @@ class StoryTest extends haxe.unit.TestCase {
     }
 
     public function testParseLine() {
+        assertEquals("Include(extra.hank)", Std.string(Story.parseLine("INCLUDE extra.hank")));
+        assertEquals("Include(extra.hank)", Std.string(Story.parseLine("INCLUDE    extra.hank")));
         // TODO test edge cases of all line types (maybe with more separate functions too)
     }
 }
