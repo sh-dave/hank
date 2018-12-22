@@ -19,12 +19,14 @@ enum LineType {
     Gather(depth: Int, restOfLine: LineType);
     HaxeLine(code: String);
     HaxeBlock(lines: Int, code: String);
+    BlockComment(lines: Int);
     Empty;
 }
 
 @:allow(src.StoryTest)
 class Story {
     private var scriptLines: Array<HankLine> = new Array();
+    private var meaningfulScriptLines: Array<HankLine> = new Array();
     private var currentLine: Int = 0;
     private var directory: String = "";
     private var parser = new Parser();
@@ -99,16 +101,28 @@ class Story {
                 return HaxeLine(StringTools.trim(trimmedLine.substr(1)));
             } else if (StringTools.startsWith(trimmedLine, "```")) {
                 var block = "";
-                var lines = 0;
+                var lines = 2;
                 // Loop until the end of the code block, incrementing the line count every time
                 while (!StringTools.startsWith(StringTools.trim(rest[0]), "```")) {
+                    // debugTrace(rest[0]);
                     block += rest[0] + '\n';
                     rest.remove(rest[0]);
                     lines += 1;
                 }
 
                 return HaxeBlock(lines, block);
-            } else {
+            }
+            else if(StringTools.startsWith(trimmedLine, "/*")) {
+                var lines = 2;
+                // Loop until the end of the multiline block comment
+                while (!StringTools.endsWith(StringTools.trim(rest[0]), "*/")) {
+                    rest.remove(rest[0]);
+                    lines += 1;
+                }
+
+                return BlockComment(lines);
+            }
+            else {
                 return OutputText(trimmedLine);
             }
         } else {
@@ -135,10 +149,26 @@ class Story {
             parsedLines.push(parsedLine);
 
             // Normal lines are parsed alone, but Haxe blocks are parsed as a group, so
-            // the index needs to update accordingly.
+            // the index needs to update accordingly and empty lines need to be added so that scriptLines.length behaves as expected
             switch (parsedLine.type) {
                 case HaxeBlock(lines, _):
-                    idx += lines + 2;
+                    for (i in 0...lines-1) {
+                        parsedLines.push({
+                            sourceFile: "",
+                            lineNumber: 0,
+                            type: LineType.Empty
+                        });
+                    }
+                    idx += lines;
+                case BlockComment(lines):
+                    for (i in 0...lines-1) {
+                        parsedLines.push({
+                            sourceFile: "",
+                            lineNumber: 0,
+                            type: LineType.Empty
+                        });
+                    }
+                    idx += lines;
                 default:
                     idx += 1;
             }
@@ -147,7 +177,11 @@ class Story {
         // Add these lines at the front of the execution queue to allow INCLUDEd scripts to run immediately
         idx = parsedLines.length - 1;
         while (idx >= 0) {
+            // NOTE using currentLine here might cause errors down the line because of desync between scriptLines and meaningfulScriptLines
             scriptLines.insert(currentLine, parsedLines[idx]);
+            if (parsedLines[idx].type != Empty) {
+                meaningfulScriptLines.insert(currentLine, parsedLines[idx]);
+            }
             idx -= 1;
         }
     }
