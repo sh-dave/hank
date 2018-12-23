@@ -4,7 +4,7 @@ import hscript.Parser;
 import hscript.Interp;
 
 class Story {
-    private var scriptLines: Array<String>;
+    private var scriptLines: Array<HankLine>;
     private var currentLine: Int = 0;
     private var directory: String = "";
     private var parser = new Parser();
@@ -27,7 +27,53 @@ class Story {
             directory = storyFile.substr(0, storyFile.lastIndexOf("/")+1);
         }
 
-        scriptLines = sys.io.File.getContent(storyFile).split('\n');
+        scriptLines = new Array(); 
+        
+        parseScript(storyFile);
+    }
+
+    private function parseLine(line: String): LineType {
+        var trimmedLine = StringTools.ltrim(unparsedLine);
+
+        if (trimmedLine.length > 0) {
+            // Parse an INCLUDE statement
+            if (StringTools.startsWith(trimmedLine, "INCLUDE")) {
+                return IncludeFile(trimmedLine.substr(8));
+            }
+            // Parse a section declaration
+            else if (StringTools.startsWith(trimmedLine, "==")) {
+                var sectionName = trimmedLine.split(" ")[1];
+                // Initialize its view count variable to 0
+                interp.variables[sectionName] = 0;
+                return DeclareSection(sectionName);
+            } else if (StringTools.startsWith(trimmedLine, "->")) {
+                return Divert(StringTools.trim(trimmedLine.substr(2)));
+            }
+        } else {
+            return Empty;
+        }
+    }
+
+    private function parseScript(file: String) {
+        var unparsedLines = sys.io.File.getContent(file).split('\n');
+        var parsedLines = new Array<HankLine>();
+
+        // Pre-Parse every line in the given file
+        for (idx in unparsedLines.length) {
+            var parsedLine = {
+                sourceFile: file,
+                lineNumber: idx+1,
+                type: LineType.Empty
+            };
+            var unparsedLine = unparsedLines[idx];
+            parsedLine.type = parseLine(unparsedLine);
+            parsedLines.push(parsedLine);
+        }
+
+        // Add these lines at the front of the execution queue to allow INCLUDEd scripts to run immediately
+        for (idx in parsedLines.length -1 ... 0) {
+            scriptLines.insert(currentLine, parsedLines[idx]);
+        }
     }
 
     public function nextFrame(): StoryFrame {
@@ -38,6 +84,7 @@ class Story {
         }
     }
 
+    // TODO this doesn't allow for multiple declaration and other edge cases that must exist
     private function processHaxeStatement(line: String) {
         // In order to preserve the values of variables declared in embedded Haxe,
         // we need to predeclare them all as globals in this Story's interpreter.
