@@ -3,15 +3,18 @@ branches:
     - lixify
 
 environment:
-  nodejs_version: "8"
+  matrix:
+    - haxe_version: "3.4.7"
+    - haxe_version: "4.0.0-rc.1"
+    - haxe_version: "nightly"
 
 install:
-  - ps: Install-Product node $env:nodejs_version
-  - npm install
+  - ps: Install-Product node 8
+  - npm install lix
+  - npx lix install haxe $env:haxe_version
+  - npx lix download
 
 test_script:
-  - node --version
-  - npm --version
-  - npm test
+  - npx lix run travix node
 
 build: off
