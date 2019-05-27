@@ -11,7 +11,7 @@ environment:
 install:
   - ps: Install-Product node 8
   - npm install lix
-  - npx lix install haxe $env:haxe_version
+  - npx lix install haxe %haxe_version%
   - npx lix download
 
 test_script:
