@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"command": "npx",
+	"args": ["lix", "run", "travix", "node"],
+	"options": {
+		"cwd": ""
+	},
+	"problemMatcher": "$haxe",
+	"group": {
+		"kind": "build",
+		"isDefault": true
+	}
+}
