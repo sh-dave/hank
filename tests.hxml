@@ -1,0 +1,8 @@
+-lib hank
+-lib tink_unittest
+
+-cp tests
+-main RunTests
+
+-dce full
+-D analyzer_optimize

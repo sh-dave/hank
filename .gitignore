@@ -6,3 +6,5 @@ js/hank.js
 cpp/
 out.n
 test-output.txt
+/bin/
+/node_modules/

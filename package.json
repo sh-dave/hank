@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "postinstall": "npx lix download",
+    "test": "npx lix run travix node"
+  },
   "devDependencies": {
     "lix": "^15.4.0"
   }
