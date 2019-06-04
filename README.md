@@ -1,7 +1,6 @@
-# hank
-Portable narrative scripting language based on Ink.
+# hank [![Build Status](https://travis-ci.com/NQNStudios/hank.svg?branch=master)](https://travis-ci.com/NQNStudios/hank) [![Build status](https://ci.appveyor.com/api/projects/status/7eqo35nfca6nw706?svg=true)](https://ci.appveyor.com/project/sh-dave/hank)
 
-[![Build Status](https://travis-ci.com/NQNStudios/hank.svg?branch=master)](https://travis-ci.com/NQNStudios/hank)
+Portable narrative scripting language based on Ink.
 
 Hank is a more portable answer to Inkle's open-source [Ink](http://github.com/inkle/ink)
 engine. It is currently just a proof of concept, but you may use it at your own risk.
