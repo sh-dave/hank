@@ -191,7 +191,7 @@ class Parser {
     }
 
     static var choices: Int = 0;
-    
+
     static function choice(buffer: HankBuffer, position: HankBuffer.Position): ExprType {
         var symbol = buffer.peek(1);
         var onceOnly = symbol == '*';
@@ -208,7 +208,7 @@ class Parser {
     }
 
     static function haxeBlock(buffer: HankBuffer, position: HankBuffer.Position): ExprType {
-        buffer.drop('```\n');
+        buffer.drop('```');
         var rawContents = buffer.takeUntil(['```'], false, true).unwrap().output;
         var processedContents = '';
 
