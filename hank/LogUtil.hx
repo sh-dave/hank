@@ -9,8 +9,8 @@ class LogUtil {
     var linesFromFile = '';
     for (item in stack) {
       switch (item) {
-      case FilePos(method, file, line):
-        var relevantPart = Std.string(if (method != null) method else line);
+      case FilePos(s, file, line, column):
+        var relevantPart = Std.string(if (s != null) s else line);
         if (file != lastFile) {
           lastFile = file;
           output += linesFromFile + '\n';
@@ -32,17 +32,17 @@ class LogUtil {
 
 
   public static function prettyPrintStack(stack: Array<StackItem>) {
-    trace(prettifyStack(stack));    
+    trace(prettifyStack(stack));
   }
 
-  public static macro function watch(e: Expr): Expr {
-    switch (e.expr) {
-        case EConst(CIdent(i)):
-            return macro trace('$i:' + $e);
-        default:
-            throw 'Can only watch variables (for now)';
-    }
-  }
+  // public static macro function watch(e: Expr): Expr {
+  //   switch (e.expr) {
+  //       case EConst(CIdent(i)):
+  //           return macro trace('$i:' + $e);
+  //       default:
+  //           throw 'Can only watch variables (for now)';
+  //   }
+  // }
 
   public static function currentTarget(): String {
 #if js
